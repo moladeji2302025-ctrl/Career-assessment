@@ -175,6 +175,35 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   Welcome step banner
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.welcome-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #eef5fd;
+  border: 1px solid #c3d9f7;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.welcome-banner__icon {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.welcome-banner .step-title {
+  font-size: 1.25rem;
+  margin-bottom: 0.4rem;
+}
+
+.welcome-banner .step-description {
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Group selection cards
    ═══════════════════════════════════════════════════════════════════════════ */
 

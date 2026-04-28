@@ -17,7 +17,7 @@ function ReviewRow({ label, value }: { label: string; value: string | string[] }
 }
 
 export default function Review({ data, onSubmit, isSubmitting }: ReviewProps) {
-  const { group, common, itStudent, nyscCorpMember, interestsAndSkills } = data;
+  const { respondentName, group, common, itStudent, nyscCorpMember, interestsAndSkills } = data;
   const groupLabel = group === 'IT_STUDENT' ? 'IT Student' : 'NYSC Corp Member';
 
   return (
@@ -27,6 +27,11 @@ export default function Review({ data, onSubmit, isSubmitting }: ReviewProps) {
         Please check your information before submitting. Your data will be passed to our
         career-guidance AI model.
       </p>
+
+      <section className="review-section">
+        <h3 className="review-section-title">Personal</h3>
+        <ReviewRow label="Full name" value={respondentName} />
+      </section>
 
       <section className="review-section">
         <h3 className="review-section-title">Group</h3>

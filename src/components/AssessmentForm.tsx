@@ -10,6 +10,7 @@ import type {
   AIAnalysisPayload,
 } from '../types/assessment';
 
+import Welcome from './steps/Welcome';
 import GroupSelection from './steps/GroupSelection';
 import BasicInfo from './steps/BasicInfo';
 import SubtleQuestions from './steps/SubtleQuestions';
@@ -43,16 +44,18 @@ const EMPTY_INTERESTS: InterestsAndSkillsFields = {
 // ─── Step metadata ────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 1, label: 'Group' },
-  { id: 2, label: 'Basic Info' },
-  { id: 3, label: 'Interests' },
-  { id: 4, label: 'Review' },
+  { id: 1, label: 'Welcome' },
+  { id: 2, label: 'Group' },
+  { id: 3, label: 'Basic Info' },
+  { id: 4, label: 'Interests' },
+  { id: 5, label: 'Review' },
 ];
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 function validateStep(
   step: number,
+  respondentName: string,
   group: GroupType | '',
   common: CommonFields,
   itStudent: ITStudentFields,
@@ -62,10 +65,15 @@ function validateStep(
   const errors: ValidationErrors = {};
 
   if (step === 1) {
-    if (!group) errors.group = 'Please select which group you belong to.';
+    if (!respondentName.trim())
+      errors.respondentName = 'Please enter your name to continue.';
   }
 
   if (step === 2) {
+    if (!group) errors.group = 'Please select which group you belong to.';
+  }
+
+  if (step === 3) {
     if (!common.organizationDepartment)
       errors.organizationDepartment = 'Please select the department you were posted to.';
 
@@ -87,7 +95,7 @@ function validateStep(
     }
   }
 
-  if (step === 3) {
+  if (step === 4) {
     if (interests.careerInterests.length === 0)
       errors.careerInterests = 'Please select at least one career interest.';
     if (interests.enjoyedSkills.length === 0)
@@ -110,8 +118,9 @@ function validateStep(
 // ─── Payload builder ──────────────────────────────────────────────────────────
 
 function buildAIPayload(formData: AssessmentFormData): AIAnalysisPayload {
-  const { group, common, itStudent, nyscCorpMember, interestsAndSkills } = formData;
+  const { respondentName, group, common, itStudent, nyscCorpMember, interestsAndSkills } = formData;
   const payload: AIAnalysisPayload = {
+    respondentName,
     respondentGroup: group,
     organizationDepartment: common.organizationDepartment,
     ...interestsAndSkills,
@@ -135,6 +144,7 @@ function buildAIPayload(formData: AssessmentFormData): AIAnalysisPayload {
 
 export default function AssessmentForm() {
   const [step, setStep] = useState(1);
+  const [respondentName, setRespondentName] = useState('');
   const [group, setGroup] = useState<GroupType | ''>('');
   const [common, setCommon] = useState<CommonFields>(EMPTY_COMMON);
   const [itStudent, setITStudent] = useState<ITStudentFields>(EMPTY_IT);
@@ -184,6 +194,7 @@ export default function AssessmentForm() {
   const goNext = () => {
     const stepErrors = validateStep(
       step,
+      respondentName,
       group,
       common,
       itStudent,
@@ -209,6 +220,7 @@ export default function AssessmentForm() {
     if (!group) return;
 
     const formData: AssessmentFormData = {
+      respondentName,
       group,
       common,
       itStudent: group === 'IT_STUDENT' ? itStudent : undefined,
@@ -221,15 +233,11 @@ export default function AssessmentForm() {
     setIsSubmitting(true);
 
     try {
-      // Replace with your AI model endpoint
-      // await fetch('/api/assessment', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // });
-
-      // Simulate async submission (remove when real endpoint is wired up)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
       setSubmittedPayload(payload);
       setIsSubmitted(true);
@@ -246,8 +254,9 @@ export default function AssessmentForm() {
         <div className="success-icon">🎉</div>
         <h2>Assessment submitted!</h2>
         <p>
-          Thank you for completing the assessment. Your responses will help train our
-          career-guidance AI to support undergraduates and fresh graduates across Nigeria.
+          Thank you, <strong>{submittedPayload.respondentName}</strong>! Your responses will
+          help train our career-guidance AI to support undergraduates and fresh graduates
+          across Nigeria.
         </p>
         <details className="payload-debug">
           <summary>View submitted data (developer preview)</summary>
@@ -260,6 +269,7 @@ export default function AssessmentForm() {
             setIsSubmitted(false);
             setSubmittedPayload(null);
             setStep(1);
+            setRespondentName('');
             setGroup('');
             setCommon(EMPTY_COMMON);
             setITStudent(EMPTY_IT);
@@ -293,6 +303,17 @@ export default function AssessmentForm() {
       {/* Step content */}
       <div className="form-body">
         {step === 1 && (
+          <Welcome
+            respondentName={respondentName}
+            onChange={(name) => {
+              setRespondentName(name);
+              setErrors((prev) => ({ ...prev, respondentName: undefined }));
+            }}
+            errors={errors}
+          />
+        )}
+
+        {step === 2 && (
           <GroupSelection
             group={group}
             onChange={(g) => {
@@ -303,7 +324,7 @@ export default function AssessmentForm() {
           />
         )}
 
-        {step === 2 && group && (
+        {step === 3 && group && (
           <BasicInfo
             group={group}
             common={common}
@@ -316,7 +337,7 @@ export default function AssessmentForm() {
           />
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <SubtleQuestions
             data={interests}
             onChange={handleInterestsChange}
@@ -324,9 +345,10 @@ export default function AssessmentForm() {
           />
         )}
 
-        {step === 4 && group && (
+        {step === 5 && group && (
           <Review
             data={{
+              respondentName,
               group,
               common,
               itStudent: group === 'IT_STUDENT' ? itStudent : undefined,
@@ -341,7 +363,7 @@ export default function AssessmentForm() {
       </div>
 
       {/* Navigation */}
-      {step < 4 && (
+      {step < 5 && (
         <div className="form-nav">
           {step > 1 && (
             <button type="button" className="btn btn--secondary" onClick={goBack}>
@@ -349,12 +371,12 @@ export default function AssessmentForm() {
             </button>
           )}
           <button type="button" className="btn btn--primary" onClick={goNext}>
-            {step === 3 ? 'Review answers →' : 'Continue →'}
+            {step === 4 ? 'Review answers →' : 'Continue →'}
           </button>
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div className="form-nav">
           <button type="button" className="btn btn--secondary" onClick={goBack}>
             ← Back

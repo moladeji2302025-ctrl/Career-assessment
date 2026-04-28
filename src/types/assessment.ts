@@ -2,6 +2,13 @@
 
 export type GroupType = 'IT_STUDENT' | 'NYSC_CORP_MEMBER';
 
+// ─── Welcome / homepage fields ────────────────────────────────────────────────
+
+export interface WelcomeFields {
+  /** Full name of the person filling the form */
+  respondentName: string;
+}
+
 // ─── Common fields ────────────────────────────────────────────────────────────
 
 export interface CommonFields {
@@ -54,6 +61,7 @@ export interface InterestsAndSkillsFields {
 // ─── Consolidated form data model ────────────────────────────────────────────
 
 export interface AssessmentFormData {
+  respondentName: string;
   group: GroupType;
   common: CommonFields;
   itStudent?: ITStudentFields;
@@ -68,6 +76,7 @@ export interface AssessmentFormData {
  * Keep this flat and descriptive so the model can use it directly.
  */
 export interface AIAnalysisPayload {
+  respondentName: string;
   respondentGroup: GroupType;
   organizationDepartment: string;
 
@@ -94,6 +103,7 @@ export interface AIAnalysisPayload {
 
 export type ValidationErrors = Partial<
   Record<
+    | keyof WelcomeFields
     | keyof CommonFields
     | keyof ITStudentFields
     | keyof NYSCCorpMemberFields

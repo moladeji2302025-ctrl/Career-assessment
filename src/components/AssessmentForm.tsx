@@ -9,6 +9,7 @@ import type {
   ValidationErrors,
   AIAnalysisPayload,
 } from '../types/assessment';
+import { SCENARIO_QUESTIONS } from '../data/scenarioQuestions';
 
 import Welcome from './steps/Welcome';
 import GroupSelection from './steps/GroupSelection';
@@ -39,6 +40,7 @@ const EMPTY_INTERESTS: InterestsAndSkillsFields = {
   biggestStrength: '',
   shortTermGoal: '',
   longTermGoal: '',
+  scenarioResponses: {},
 };
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
@@ -110,6 +112,11 @@ function validateStep(
       errors.shortTermGoal = 'Please describe your short-term goal.';
     if (!interests.longTermGoal.trim())
       errors.longTermGoal = 'Please describe your long-term goal.';
+    const unansweredCount = SCENARIO_QUESTIONS.filter(
+      (q) => !interests.scenarioResponses[q.id],
+    ).length;
+    if (unansweredCount > 0)
+      errors.scenarioResponses = `Please answer all scenario questions (${unansweredCount} remaining).`;
   }
 
   return errors;

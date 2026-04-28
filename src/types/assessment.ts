@@ -56,6 +56,12 @@ export interface InterestsAndSkillsFields {
   shortTermGoal: string;
   /** Long-term career vision (5+ years) */
   longTermGoal: string;
+  /**
+   * Responses to scenario-based questions, keyed by the stable question ID
+   * (e.g. "sq_team_approach").  Each value is the selected option's slug.
+   * Stored as-is in the backend payload for AI training.
+   */
+  scenarioResponses: Record<string, string>;
 }
 
 // ─── Consolidated form data model ────────────────────────────────────────────
@@ -97,6 +103,8 @@ export interface AIAnalysisPayload {
   biggestStrength: string;
   shortTermGoal: string;
   longTermGoal: string;
+  /** Scenario question responses keyed by question ID */
+  scenarioResponses: Record<string, string>;
 }
 
 // ─── Validation errors ────────────────────────────────────────────────────────

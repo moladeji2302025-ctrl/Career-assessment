@@ -3,12 +3,13 @@ import type {
   ValidationErrors,
 } from '../../types/assessment';
 import {
-  CAREER_INTEREST_OPTIONS,
+  CAREER_INTERESTS_BY_CATEGORY,
   ENJOYED_SKILLS_OPTIONS,
   WORK_ENVIRONMENT_OPTIONS,
   PRIMARY_MOTIVATION_OPTIONS,
   BIGGEST_STRENGTH_OPTIONS,
 } from '../../data/organizationDepartments';
+import { SCENARIO_QUESTIONS } from '../../data/scenarioQuestions';
 import FormField from '../ui/FormField';
 import CheckboxGroup from '../ui/CheckboxGroup';
 
@@ -19,6 +20,10 @@ interface SubtleQuestionsProps {
 }
 
 export default function SubtleQuestions({ data, onChange, errors }: SubtleQuestionsProps) {
+  const handleScenarioChange = (questionId: string, value: string) => {
+    onChange('scenarioResponses', { ...data.scenarioResponses, [questionId]: value });
+  };
+
   return (
     <div className="step-container">
       <h2 className="step-title">Interests &amp; Skills</h2>
@@ -27,24 +32,33 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         passions, natural strengths, and what drives you. There are no right or wrong answers.
       </p>
 
-      {/* Career interests */}
-      <FormField
-        label="Career areas that interest you"
-        htmlFor="careerInterests"
-        error={errors.careerInterests}
-        hint="Select all that apply"
-        required
-      >
-        <CheckboxGroup
-          id="careerInterests"
-          options={CAREER_INTEREST_OPTIONS}
-          selected={data.careerInterests}
-          onChange={(val) => onChange('careerInterests', val)}
-          columns={2}
-        />
-      </FormField>
+      {/* ── Career interests (categorised) ─────────────────────────────────── */}
+      <div className="form-field">
+        <span className="form-label">
+          Career areas that interest you
+          <span className="required-star" aria-hidden="true">*</span>
+        </span>
+        <p className="form-hint">Select all that apply — across as many categories as you like</p>
+        {errors.careerInterests && (
+          <p className="form-error" role="alert">{errors.careerInterests}</p>
+        )}
+        <div className="career-categories">
+          {CAREER_INTERESTS_BY_CATEGORY.map((cat) => (
+            <div key={cat.category} className="career-category">
+              <h4 className="career-category__header">{cat.category}</h4>
+              <CheckboxGroup
+                id={`careerInterests-${cat.category.replace(/\s+/g, '-')}`}
+                options={cat.items}
+                selected={data.careerInterests}
+                onChange={(val) => onChange('careerInterests', val)}
+                columns={2}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
-      {/* Enjoyed skills */}
+      {/* ── Enjoyed skills ─────────────────────────────────────────────────── */}
       <FormField
         label="Skills you genuinely enjoy using"
         htmlFor="enjoyedSkills"
@@ -61,7 +75,7 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         />
       </FormField>
 
-      {/* Work environment */}
+      {/* ── Work environment ───────────────────────────────────────────────── */}
       <FormField
         label="Preferred work environment"
         htmlFor="workEnvironment"
@@ -84,7 +98,7 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         </div>
       </FormField>
 
-      {/* Primary motivation */}
+      {/* ── Primary motivation ─────────────────────────────────────────────── */}
       <FormField
         label="What motivates you most at work?"
         htmlFor="primaryMotivation"
@@ -106,7 +120,7 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         </select>
       </FormField>
 
-      {/* Biggest strength */}
+      {/* ── Biggest strength ───────────────────────────────────────────────── */}
       <FormField
         label="Your biggest strength"
         htmlFor="biggestStrength"
@@ -128,7 +142,46 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         </select>
       </FormField>
 
-      {/* Short-term goal */}
+      {/* ── Scenario-based questions ───────────────────────────────────────── */}
+      <div className="form-field">
+        <span className="form-label">
+          Scenario questions
+          <span className="required-star" aria-hidden="true">*</span>
+        </span>
+        <p className="form-hint">
+          Read each situation and pick the option that best describes you. Answer all questions
+          — your pattern of responses helps our AI understand your natural fit.
+        </p>
+        {errors.scenarioResponses && (
+          <p className="form-error" role="alert">{errors.scenarioResponses}</p>
+        )}
+        <div className="scenario-questions">
+          {SCENARIO_QUESTIONS.map((q, idx) => (
+            <div key={q.id} className="scenario-question">
+              <p className="scenario-question__prompt">
+                <span className="scenario-question__number">{idx + 1}.</span>{' '}
+                {q.prompt}
+              </p>
+              <div className="scenario-options" role="radiogroup">
+                {q.options.map((opt) => (
+                  <label key={opt.value} className="radio-option">
+                    <input
+                      type="radio"
+                      name={q.id}
+                      value={opt.value}
+                      checked={data.scenarioResponses[q.id] === opt.value}
+                      onChange={() => handleScenarioChange(q.id, opt.value)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Short-term goal ────────────────────────────────────────────────── */}
       <FormField
         label="Where do you see yourself in 1–2 years?"
         htmlFor="shortTermGoal"
@@ -146,7 +199,7 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         />
       </FormField>
 
-      {/* Long-term goal */}
+      {/* ── Long-term goal ─────────────────────────────────────────────────── */}
       <FormField
         label="Where do you see yourself in 5+ years?"
         htmlFor="longTermGoal"

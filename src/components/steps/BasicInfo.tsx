@@ -6,7 +6,8 @@ import type {
   NYSCCorpMemberFields,
   ValidationErrors,
 } from '../../types/assessment';
-import { getDegreeForProgram, PROGRAM_NAMES } from '../../data/programDegreeMapping';
+import { getDegreeForProgram } from '../../data/programDegreeMapping';
+import { NIGERIAN_UNIVERSITY_PROGRAMMES, NIGERIAN_PROGRAMME_NAMES } from '../../data/nigerianUniversityPrograms';
 import { ORGANIZATION_DEPARTMENTS } from '../../data/organizationDepartments';
 import FormField from '../ui/FormField';
 
@@ -79,17 +80,26 @@ export default function BasicInfo({
             label="Programme / Department in school"
             htmlFor="schoolProgram"
             error={errors.schoolProgram}
-            hint="E.g. Computer Science, Electrical Engineering, Business Administration"
+            hint="Select your current programme from the list"
             required
           >
-            <input
+            <select
               id="schoolProgram"
-              type="text"
-              className="form-input"
+              className="form-select"
               value={itStudent.schoolProgram}
               onChange={(e) => onChangeIT('schoolProgram', e.target.value)}
-              placeholder="Enter your current programme or department"
-            />
+            >
+              <option value="">— Select your programme —</option>
+              {NIGERIAN_UNIVERSITY_PROGRAMMES.map((cat) => (
+                <optgroup key={cat.faculty} label={cat.faculty}>
+                  {cat.programmes.map((prog) => (
+                    <option key={prog} value={prog}>
+                      {prog}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </FormField>
 
           <FormField
@@ -131,8 +141,8 @@ export default function BasicInfo({
               placeholder="E.g. Computer Science, Law, Accounting"
             />
             <datalist id="program-suggestions">
-              {PROGRAM_NAMES.map((p) => (
-                <option key={p} value={p.charAt(0).toUpperCase() + p.slice(1)} />
+              {NIGERIAN_PROGRAMME_NAMES.map((p) => (
+                <option key={p} value={p} />
               ))}
             </datalist>
           </FormField>

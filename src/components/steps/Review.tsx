@@ -1,4 +1,5 @@
 import type { AssessmentFormData } from '../../types/assessment';
+import { SCENARIO_QUESTIONS } from '../../data/scenarioQuestions';
 
 interface ReviewProps {
   data: AssessmentFormData;

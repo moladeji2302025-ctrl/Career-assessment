@@ -3,22 +3,28 @@ import type {
   ValidationErrors,
 } from '../../types/assessment';
 import {
-  CAREER_INTEREST_OPTIONS,
+  CAREER_INTEREST_CATEGORIES,
   ENJOYED_SKILLS_OPTIONS,
   WORK_ENVIRONMENT_OPTIONS,
   PRIMARY_MOTIVATION_OPTIONS,
   BIGGEST_STRENGTH_OPTIONS,
 } from '../../data/organizationDepartments';
+import { SCENARIO_QUESTIONS } from '../../data/scenarioQuestions';
 import FormField from '../ui/FormField';
 import CheckboxGroup from '../ui/CheckboxGroup';
+import CategorizedCheckboxGroup from '../ui/CategorizedCheckboxGroup';
 
 interface SubtleQuestionsProps {
   data: InterestsAndSkillsFields;
-  onChange: (field: keyof InterestsAndSkillsFields, value: string | string[]) => void;
+  onChange: (field: keyof InterestsAndSkillsFields, value: string | string[] | Record<string, string>) => void;
   errors: ValidationErrors;
 }
 
 export default function SubtleQuestions({ data, onChange, errors }: SubtleQuestionsProps) {
+  const handleScenarioChange = (questionId: string, value: string) => {
+    onChange('scenarioResponses', { ...data.scenarioResponses, [questionId]: value });
+  };
+
   return (
     <div className="step-container">
       <h2 className="step-title">Interests &amp; Skills</h2>
@@ -27,20 +33,54 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
         passions, natural strengths, and what drives you. There are no right or wrong answers.
       </p>
 
+      {/* ── Scenario-based interest questions ─────────────────────────────── */}
+      <section className="scenario-section">
+        <h3 className="scenario-section__title">
+          📝 Scenario Questions
+        </h3>
+        <p className="scenario-section__description">
+          Read each scenario and choose the option that best describes how you would naturally
+          respond. These subtle questions help surface your true interests and working style.
+        </p>
+
+        {/* Scenario questions are not validated individually — they are optional enrichment data */}
+        {SCENARIO_QUESTIONS.map((sq, index) => (
+          <div key={sq.id} className="scenario-question">
+            <p className="scenario-question__text">
+              <span className="scenario-question__number">{index + 1}.</span>{' '}
+              {sq.question}
+            </p>
+            <div className="radio-group" role="radiogroup" aria-label={sq.question}>
+              {sq.options.map((opt) => (
+                <label key={opt.value} className="radio-option">
+                  <input
+                    type="radio"
+                    name={sq.id}
+                    value={opt.value}
+                    checked={data.scenarioResponses[sq.id] === opt.value}
+                    onChange={() => handleScenarioChange(sq.id, opt.value)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+
       {/* Career interests */}
       <FormField
         label="Career areas that interest you"
         htmlFor="careerInterests"
         error={errors.careerInterests}
-        hint="Select all that apply"
+        hint="Select all that apply — careers are grouped by field"
         required
       >
-        <CheckboxGroup
+        <CategorizedCheckboxGroup
           id="careerInterests"
-          options={CAREER_INTEREST_OPTIONS}
+          categories={CAREER_INTEREST_CATEGORIES}
           selected={data.careerInterests}
           onChange={(val) => onChange('careerInterests', val)}
-          columns={2}
         />
       </FormField>
 
@@ -166,3 +206,4 @@ export default function SubtleQuestions({ data, onChange, errors }: SubtleQuesti
     </div>
   );
 }
+

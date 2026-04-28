@@ -1,4 +1,5 @@
 import type { AssessmentFormData } from '../../types/assessment';
+import { SCENARIO_QUESTIONS } from '../../data/scenarioQuestions';
 
 interface ReviewProps {
   data: AssessmentFormData;
@@ -88,6 +89,24 @@ export default function Review({ data, onSubmit, isSubmitting }: ReviewProps) {
         <ReviewRow label="Short-term goal" value={interestsAndSkills.shortTermGoal} />
         <ReviewRow label="Long-term goal" value={interestsAndSkills.longTermGoal} />
       </section>
+
+      {Object.keys(interestsAndSkills.scenarioResponses).length > 0 && (
+        <section className="review-section">
+          <h3 className="review-section-title">Scenario Responses</h3>
+          {SCENARIO_QUESTIONS.map((sq) => {
+            const answer = interestsAndSkills.scenarioResponses[sq.id];
+            if (!answer) return null;
+            const opt = sq.options.find((o) => o.value === answer);
+            return (
+              <ReviewRow
+                key={sq.id}
+                label={sq.question}
+                value={opt ? opt.label : answer}
+              />
+            );
+          })}
+        </section>
+      )}
 
       <div className="review-submit">
         <p className="review-note">

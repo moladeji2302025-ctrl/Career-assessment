@@ -608,3 +608,98 @@
   color: #334;
   font-size: 0.75rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Categorized checkbox group (career interests)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.categorized-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.career-category {
+  border: 1px solid #e5e8ee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.career-category__header {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #fff;
+  background: #2a5298;
+  padding: 0.45rem 1rem;
+  margin: 0;
+}
+
+.career-category__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  padding: 0.5rem 0.75rem;
+  background: #f9fafb;
+}
+
+@media (max-width: 520px) {
+  .career-category__options {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scenario questions section
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.scenario-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: #f7f9fc;
+  border: 1px solid #dde6f0;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.scenario-section__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin: 0;
+}
+
+.scenario-section__description {
+  font-size: 0.86rem;
+  color: #556;
+  margin: -0.75rem 0 0;
+  line-height: 1.55;
+}
+
+.scenario-question {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e5ecf5;
+}
+
+.scenario-question:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.scenario-question__text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #223;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.scenario-question__number {
+  color: #2a7ae4;
+  font-weight: 700;
+}

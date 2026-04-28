@@ -39,6 +39,7 @@ const EMPTY_INTERESTS: InterestsAndSkillsFields = {
   biggestStrength: '',
   shortTermGoal: '',
   longTermGoal: '',
+  scenarioResponses: {},
 };
 
 // ─── Step metadata ────────────────────────────────────────────────────────────
@@ -78,8 +79,8 @@ function validateStep(
       errors.organizationDepartment = 'Please select the department you were posted to.';
 
     if (group === 'IT_STUDENT') {
-      if (!itStudent.schoolProgram.trim())
-        errors.schoolProgram = 'Please enter your programme or department.';
+      if (!itStudent.schoolProgram)
+        errors.schoolProgram = 'Please select your programme or department.';
       if (!itStudent.expectedCompletionDate)
         errors.expectedCompletionDate = 'Please select your expected completion date.';
     }
@@ -182,7 +183,7 @@ export default function AssessmentForm() {
   );
 
   const handleInterestsChange = useCallback(
-    (field: keyof InterestsAndSkillsFields, value: string | string[]) => {
+    (field: keyof InterestsAndSkillsFields, value: string | string[] | Record<string, string>) => {
       setInterests((prev) => ({ ...prev, [field]: value }));
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     },

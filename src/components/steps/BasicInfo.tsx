@@ -8,6 +8,7 @@ import type {
 } from '../../types/assessment';
 import { getDegreeForProgram, PROGRAM_NAMES } from '../../data/programDegreeMapping';
 import { ORGANIZATION_DEPARTMENTS } from '../../data/organizationDepartments';
+import { NIGERIAN_UNIVERSITY_PROGRAM_LIST } from '../../data/nigerianUniversityPrograms';
 import FormField from '../ui/FormField';
 
 interface BasicInfoProps {
@@ -79,17 +80,22 @@ export default function BasicInfo({
             label="Programme / Department in school"
             htmlFor="schoolProgram"
             error={errors.schoolProgram}
-            hint="E.g. Computer Science, Electrical Engineering, Business Administration"
+            hint="Select the programme you are currently enrolled in"
             required
           >
-            <input
+            <select
               id="schoolProgram"
-              type="text"
-              className="form-input"
+              className="form-select"
               value={itStudent.schoolProgram}
               onChange={(e) => onChangeIT('schoolProgram', e.target.value)}
-              placeholder="Enter your current programme or department"
-            />
+            >
+              <option value="">— Select your programme —</option>
+              {NIGERIAN_UNIVERSITY_PROGRAM_LIST.map((prog) => (
+                <option key={prog} value={prog}>
+                  {prog}
+                </option>
+              ))}
+            </select>
           </FormField>
 
           <FormField

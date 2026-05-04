@@ -3,8 +3,11 @@ from __future__ import annotations
 import os
 from threading import Lock
 
+from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.collection import Collection
+
+load_dotenv()
 
 _client: MongoClient | None = None
 _collection: Collection | None = None

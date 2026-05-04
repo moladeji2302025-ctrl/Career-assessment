@@ -29,25 +29,46 @@ A multi-step web form that collects career-relevant data from **IT Students** an
 
 ## Getting Started
 
+### Development (recommended)
+
+Run both the React dev server and the FastAPI backend together with a single command:
+
 ```bash
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # type-check + production build
-npm run lint       # ESLint
+npm run server:install   # install Python dependencies
+npm run dev:all          # starts frontend on :5173 and backend on :3001
 ```
 
-### Backend (Python + MongoDB)
+The Vite dev server automatically proxies `/api/*` requests to the FastAPI backend at `http://localhost:3001`, so form submissions work out of the box.
+
+### Development (manual / separate terminals)
 
 ```bash
-python -m pip install -r server/requirements.txt
-python -m uvicorn server.app:app --reload --port 3001
+# Terminal 1 – frontend
+npm install
+npm run dev        # http://localhost:5173
+
+# Terminal 2 – backend
+npm run server:install
+npm run server:dev # http://localhost:3001
 ```
 
-The API defaults to `mongodb://localhost:27017` and can be configured via:
+### Production (single server)
 
-- `MONGODB_URI`
-- `MONGODB_DB` (default: `career_assessment`)
-- `MONGODB_COLLECTION` (default: `assessments`)
+Build the React app and start only the FastAPI server — it will serve both the API and the compiled frontend from port 3001:
+
+```bash
+npm install
+npm run server:install
+npm run start      # builds frontend then starts FastAPI on :3001
+```
+
+Or step by step:
+
+```bash
+npm run build:full          # type-check + Vite build + Python compile
+npm run server:start        # serve on 0.0.0.0:3001
+```
 
 ---
 
@@ -94,9 +115,10 @@ cp .env.example .env
 
 1. A user completes the multi-step form and clicks **Submit Assessment**.
 2. `AssessmentForm.tsx` builds an `AIAnalysisPayload` and POSTs it to `/api/assessments`.
-3. In development the Vite dev server proxies `/api` to the FastAPI backend at `http://localhost:3001`.
-4. The FastAPI backend validates the payload and inserts it into MongoDB.
-5. On success the frontend shows the submission confirmation screen.
+3. **Development**: the Vite dev server proxies `/api` to the FastAPI backend at `http://localhost:3001`.
+4. **Production**: the built frontend is served by FastAPI itself, so `/api/assessments` hits the same origin — no proxy needed.
+5. The FastAPI backend validates the payload and inserts it into MongoDB.
+6. On success the frontend shows the submission confirmation screen.
 
 ---
 

@@ -3,10 +3,13 @@ from __future__ import annotations
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pymongo.errors import PyMongoError
 
 from .db import close_client, get_collection, init_client
@@ -147,3 +150,22 @@ def list_assessments():
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+# ── Static frontend (production) ──────────────────────────────────────────────
+# When the React app has been built (`npm run build`), serve it from the same
+# FastAPI process so a single `uvicorn` command handles both the API and the UI.
+
+_DIST_DIR = Path(__file__).parent.parent / "dist"
+
+if _DIST_DIR.is_dir():
+    _assets_dir = _DIST_DIR / "assets"
+    if _assets_dir.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(_full_path: str):
+        index = _DIST_DIR / "index.html"
+        if index.is_file():
+            return FileResponse(str(index))
+        raise HTTPException(status_code=404, detail="Frontend not built. Run `npm run build`.")

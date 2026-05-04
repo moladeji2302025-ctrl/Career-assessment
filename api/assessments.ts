@@ -19,14 +19,11 @@ const REQUIRED_FIELDS = [
 
 const VALID_GROUPS = new Set(['IT_STUDENT', 'NYSC_CORP_MEMBER']);
 
-// ─── One-time table initialisation ───────────────────────────────────────────
-// CREATE TABLE IF NOT EXISTS is idempotent, so we only need to run it once per
-// cold-start (module-level flag avoids the round-trip on warm invocations).
-
-let tableReady = false;
+// ─── Table initialisation ─────────────────────────────────────────────────────
+// CREATE TABLE IF NOT EXISTS is idempotent; running it on every cold-start
+// ensures the schema exists without needing a separate migration step.
 
 async function ensureTable(): Promise<void> {
-  if (tableReady) return;
   await sql`
     CREATE TABLE IF NOT EXISTS assessments (
       id                       TEXT        PRIMARY KEY,
@@ -49,7 +46,6 @@ async function ensureTable(): Promise<void> {
       scenario_responses       JSONB       NOT NULL DEFAULT '{}'
     )
   `;
-  tableReady = true;
 }
 
 // ─── Validation ───────────────────────────────────────────────────────────────

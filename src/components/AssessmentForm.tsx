@@ -59,13 +59,10 @@ const API_BASE = (() => {
   if (envBase) {
     return envBase.replace(/\/$/, '');
   }
-  if (typeof window === 'undefined') {
-    return '/api';
-  }
-  const currentPort = window.location.port ? Number(window.location.port) : null;
+  const frontendPort = window.location.port ? Number(window.location.port) : null;
   const isLocalHost =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isLocalHost && currentPort && currentPort !== LOCAL_API_PORT) {
+  if (isLocalHost && frontendPort && frontendPort !== LOCAL_API_PORT) {
     return `http://localhost:${LOCAL_API_PORT}/api`;
   }
   return '/api';

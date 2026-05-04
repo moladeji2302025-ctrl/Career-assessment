@@ -8,7 +8,7 @@ from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.errors import PyMongoError
 
-from .db import get_collection
+from .db import close_client, get_collection, init_client
 
 REQUIRED_FIELDS = [
     "respondentName",
@@ -26,6 +26,16 @@ REQUIRED_FIELDS = [
 VALID_GROUPS = {"IT_STUDENT", "NYSC_CORP_MEMBER"}
 
 app = FastAPI(title="Career Assessment API")
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    init_client()
+
+
+@app.on_event("shutdown")
+def on_shutdown() -> None:
+    close_client()
 
 app.add_middleware(
     CORSMiddleware,

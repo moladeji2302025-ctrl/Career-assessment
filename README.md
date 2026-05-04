@@ -22,6 +22,7 @@ A multi-step web form that collects career-relevant data from **IT Students** an
 ## Tech Stack
 
 - **React 19** + **TypeScript** (Vite scaffold)
+- **FastAPI** (Python) backend with MongoDB persistence
 - Plain CSS (no additional UI library dependency)
 
 ---
@@ -34,6 +35,19 @@ npm run dev        # http://localhost:5173
 npm run build      # type-check + production build
 npm run lint       # ESLint
 ```
+
+### Backend (Python + MongoDB)
+
+```bash
+python -m pip install -r server/requirements.txt
+python -m uvicorn server.app:app --reload --port 3001
+```
+
+The API defaults to `mongodb://localhost:27017` and can be configured via:
+
+- `MONGODB_URI`
+- `MONGODB_DB` (default: `career_assessment`)
+- `MONGODB_COLLECTION` (default: `assessments`)
 
 ---
 

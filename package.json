@@ -8,10 +8,10 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server:install": "cd server && npm install",
-    "server:dev": "cd server && npm run dev",
-    "server:build": "cd server && npm run build",
-    "server:start": "cd server && npm run start"
+    "server:install": "python -m pip install -r server/requirements.txt",
+    "server:dev": "python -m uvicorn server.app:app --reload --port 3001",
+    "server:build": "python -m compileall server",
+    "server:start": "python -m uvicorn server.app:app --host 0.0.0.0 --port 3001"
   },
   "dependencies": {
     "react": "^19.2.5",

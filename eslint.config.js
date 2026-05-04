@@ -19,4 +19,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // Vercel serverless functions run in Node.js — use Node globals instead of
+  // browser globals and disable React-specific rules.
+  {
+    files: ['api/**/*.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

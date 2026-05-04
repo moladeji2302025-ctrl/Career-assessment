@@ -52,27 +52,12 @@ const STEPS = [
   { id: 5, label: 'Review' },
 ];
 
-const API_PATH = '/api';
-const LOCAL_API_PORT = 3001;
-// normalizeBase expects a fully-qualified URL or absolute path like "/api".
-const normalizeBase = (base: string) => base.replace(/\/$/, '');
-
-const API_BASE = (() => {
-  const envBase = import.meta.env.VITE_API_BASE_URL;
-  if (envBase) {
-    return normalizeBase(envBase);
-  }
-  const frontendPort = window.location.port ? Number(window.location.port) : null;
-  const isLocalHost =
-    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isLocalHost && frontendPort && frontendPort !== LOCAL_API_PORT) {
-    const protocol = window.location.protocol;
-    const localProtocol =
-      protocol === 'https:' || protocol === 'http:' ? protocol.replace(':', '') : 'http';
-    return normalizeBase(`${localProtocol}://localhost:${LOCAL_API_PORT}${API_PATH}`);
-  }
-  return API_PATH;
-})();
+// In production on Vercel, /api/* is served by the serverless functions on the
+// same origin — no absolute URL needed.  Override with VITE_API_BASE_URL when
+// testing against a different host (e.g. the legacy FastAPI backend).
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, '')
+  : '/api';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 

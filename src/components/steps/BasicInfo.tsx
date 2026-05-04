@@ -65,10 +65,14 @@ export default function BasicInfo({
           onChange={(e) => onChangeCommon('organizationDepartment', e.target.value)}
         >
           <option value="">— Select a department —</option>
-          {ORGANIZATION_DEPARTMENTS.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
-            </option>
+          {ORGANIZATION_DEPARTMENTS.map(({ group, departments }) => (
+            <optgroup key={group} label={group}>
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </FormField>

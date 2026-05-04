@@ -52,6 +52,8 @@ const STEPS = [
   { id: 5, label: 'Review' },
 ];
 
+const LOCAL_API_PORT = '3001';
+
 const API_BASE = (() => {
   const envBase = import.meta.env.VITE_API_BASE_URL;
   if (envBase) {
@@ -60,8 +62,8 @@ const API_BASE = (() => {
   if (typeof window === 'undefined') {
     return '/api';
   }
-  if (window.location.hostname === 'localhost' && window.location.port !== '3001') {
-    return 'http://localhost:3001/api';
+  if (window.location.hostname === 'localhost' && window.location.port !== LOCAL_API_PORT) {
+    return `http://localhost:${LOCAL_API_PORT}/api`;
   }
   return '/api';
 })();

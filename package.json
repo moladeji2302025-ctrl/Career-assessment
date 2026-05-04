@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "concurrently -n frontend,backend -c cyan,yellow \"npm run dev:frontend\" \"npm run server:dev\"",
     "dev:frontend": "vite",
-    "dev:all": "npm run dev",
     "build": "tsc -b && vite build",
     "build:full": "npm run build && npm run server:build",
     "lint": "eslint .",

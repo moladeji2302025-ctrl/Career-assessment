@@ -155,6 +155,7 @@ export default function AssessmentForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedPayload, setSubmittedPayload] = useState<AIAnalysisPayload | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // ── Field change handlers ─────────────────────────────────────────────────
 
@@ -212,6 +213,7 @@ export default function AssessmentForm() {
 
   const goBack = () => {
     setErrors({});
+    setSubmitError(null);
     setStep((s) => Math.max(s - 1, 1));
   };
 
@@ -232,16 +234,27 @@ export default function AssessmentForm() {
     const payload = buildAIPayload(formData);
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      await fetch('/api/assessments', {
+      const response = await fetch('/api/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const detail = data && typeof data === 'object' && 'detail' in data
+          ? String((data as { detail: unknown }).detail)
+          : `Server error: ${response.status}`;
+        throw new Error(detail);
+      }
+
       setSubmittedPayload(payload);
       setIsSubmitted(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -360,6 +373,11 @@ export default function AssessmentForm() {
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
           />
+        )}
+        {step === 5 && submitError && (
+          <p role="alert" className="field-error" style={{ marginTop: '1rem' }}>
+            {submitError}
+          </p>
         )}
       </div>
 

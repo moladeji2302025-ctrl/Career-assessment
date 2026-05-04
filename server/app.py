@@ -91,6 +91,7 @@ def _build_entry(payload: Dict[str, Any]) -> Dict[str, Any]:
         "biggestStrength": str(payload["biggestStrength"]),
         "shortTermGoal": str(payload["shortTermGoal"]),
         "longTermGoal": str(payload["longTermGoal"]),
+        "scenarioResponses": sr if isinstance(sr := payload.get("scenarioResponses"), dict) else {},
     }
 
     optional_fields = [

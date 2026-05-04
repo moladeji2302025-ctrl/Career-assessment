@@ -74,17 +74,29 @@ src/
 
 ---
 
-## Wiring Up the AI Endpoint
+## Environment Configuration
 
-In `src/components/AssessmentForm.tsx`, find the commented-out `fetch` block inside `handleSubmit` and replace the simulated delay:
+Copy `.env.example` to `.env` and set the values for your environment before starting the backend:
 
-```ts
-await fetch('/api/assessment', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(payload),   // payload is an AIAnalysisPayload object
-});
+```bash
+cp .env.example .env
 ```
+
+| Variable | Default | Description |
+|---|---|---|
+| `MONGODB_URI` | `mongodb://localhost:27017` | MongoDB connection string |
+| `MONGODB_DB` | `career_assessment` | Database name |
+| `MONGODB_COLLECTION` | `assessments` | Collection name |
+
+---
+
+## Submission Flow
+
+1. A user completes the multi-step form and clicks **Submit Assessment**.
+2. `AssessmentForm.tsx` builds an `AIAnalysisPayload` and POSTs it to `/api/assessments`.
+3. In development the Vite dev server proxies `/api` to the FastAPI backend at `http://localhost:3001`.
+4. The FastAPI backend validates the payload and inserts it into MongoDB.
+5. On success the frontend shows the submission confirmation screen.
 
 ---
 

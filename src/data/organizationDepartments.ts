@@ -1,24 +1,43 @@
 /**
- * Departments within the organisation that respondents can be posted to.
+ * A named group of sub-departments within the organisation.
+ * Used to render an <optgroup> in the department dropdown.
+ */
+export interface OrganizationDepartmentGroup {
+  group: string;
+  departments: string[];
+}
+
+/**
+ * Hierarchical department structure for the organisation.
+ * Each entry represents a parent department with its sub-departments.
  * Add or remove entries here to keep the list current.
  */
-export const ORGANIZATION_DEPARTMENTS: string[] = [
-  'Software Development',
-  'Data Science & Analytics',
-  'Product Management',
-  'Business Analysis',
-  'Quality Assurance',
-  'DevOps & Infrastructure',
-  'UI/UX Design',
-  'Cybersecurity',
-  'Finance & Accounting',
-  'Human Resources',
-  'Marketing & Communications',
-  'Operations',
-  'Project Management',
-  'Customer Success',
-  'Research & Development',
-  'Legal & Compliance',
+export const ORGANIZATION_DEPARTMENTS: OrganizationDepartmentGroup[] = [
+  {
+    group: 'MD',
+    departments: ["MD's office", 'Procurement'],
+  },
+  {
+    group: 'Engineering',
+    departments: [
+      'Technical services',
+      'Innovation',
+      'IT',
+      'SCC',
+      'NOC',
+      'Broadband',
+    ],
+  },
+  {
+    group: 'Marketing and Admin',
+    departments: [
+      'Human capital management/HR',
+      'Account',
+      'Audit',
+      'Admin',
+      'Maintenance',
+    ],
+  },
 ];
 
 // ─── Career interest categories ───────────────────────────────────────────────

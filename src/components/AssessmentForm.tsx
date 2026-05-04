@@ -54,6 +54,7 @@ const STEPS = [
 
 const API_PATH = '/api';
 const LOCAL_API_PORT = 3001;
+// normalizeBase expects a fully-qualified URL or absolute path like "/api".
 const normalizeBase = (base: string) => base.replace(/\/$/, '');
 
 const API_BASE = (() => {
@@ -65,7 +66,9 @@ const API_BASE = (() => {
   const isLocalHost =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isLocalHost && frontendPort && frontendPort !== LOCAL_API_PORT) {
-    const localProtocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    const protocol = window.location.protocol;
+    const localProtocol =
+      protocol === 'https:' || protocol === 'http:' ? protocol.replace(':', '') : 'http';
     return normalizeBase(`${localProtocol}://localhost:${LOCAL_API_PORT}${API_PATH}`);
   }
   return API_PATH;

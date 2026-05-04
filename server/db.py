@@ -38,5 +38,5 @@ def get_collection() -> Collection:
     if _collection is None:
         init_client()
     if _collection is None:
-        raise RuntimeError("MongoDB client is not initialized.")
+        raise RuntimeError("Failed to initialize MongoDB collection.")
     return _collection

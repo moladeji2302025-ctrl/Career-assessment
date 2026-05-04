@@ -123,7 +123,7 @@ def create_assessment(payload: Dict[str, Any] = Body(...)):
     except PyMongoError as exc:
         raise HTTPException(
             status_code=500,
-            detail="Failed to insert assessment into database.",
+            detail="Failed to insert assessment into MongoDB. Check database connectivity.",
         ) from exc
 
     return {"id": entry["id"], "submittedAt": entry["submittedAt"]}
@@ -137,7 +137,7 @@ def list_assessments():
     except PyMongoError as exc:
         raise HTTPException(
             status_code=500,
-            detail="Failed to retrieve assessments from database.",
+            detail="Failed to retrieve assessments from MongoDB. Check database connectivity.",
         ) from exc
 
     return entries

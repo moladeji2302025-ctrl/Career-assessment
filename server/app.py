@@ -64,7 +64,7 @@ def _optional_string(payload: Dict[str, Any], key: str) -> str | None:
 
 
 def _iso_timestamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _build_entry(payload: Dict[str, Any]) -> Dict[str, Any]:
@@ -111,7 +111,10 @@ def create_assessment(payload: Dict[str, Any] = Body(...)):
         collection = get_collection()
         collection.insert_one(entry)
     except PyMongoError as exc:
-        raise HTTPException(status_code=500, detail="Database error.") from exc
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to insert assessment into database.",
+        ) from exc
 
     return {"id": entry["id"], "submittedAt": entry["submittedAt"]}
 
@@ -122,7 +125,10 @@ def list_assessments():
         collection = get_collection()
         entries = list(collection.find({}, {"_id": 0}))
     except PyMongoError as exc:
-        raise HTTPException(status_code=500, detail="Database error.") from exc
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve assessments from database.",
+        ) from exc
 
     return entries
 

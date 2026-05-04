@@ -9,17 +9,12 @@ _client: MongoClient | None = None
 _collection: Collection | None = None
 
 
-def _env(name: str, default: str) -> str:
-    value = os.getenv(name)
-    return value if value else default
-
-
 def get_collection() -> Collection:
     global _client, _collection
     if _collection is None:
-        uri = _env("MONGODB_URI", "mongodb://localhost:27017")
-        database_name = _env("MONGODB_DB", "career_assessment")
-        collection_name = _env("MONGODB_COLLECTION", "assessments")
+        uri = os.getenv("MONGODB_URI") or "mongodb://localhost:27017"
+        database_name = os.getenv("MONGODB_DB") or "career_assessment"
+        collection_name = os.getenv("MONGODB_COLLECTION") or "assessments"
 
         _client = MongoClient(uri)
         _collection = _client[database_name][collection_name]

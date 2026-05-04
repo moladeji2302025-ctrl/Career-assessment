@@ -52,6 +52,28 @@ const STEPS = [
   { id: 5, label: 'Review' },
 ];
 
+const API_PATH = '/api';
+const LOCAL_API_PORT = 3001;
+// normalizeBase expects a fully-qualified URL or absolute path like "/api".
+const normalizeBase = (base: string) => base.replace(/\/$/, '');
+
+const API_BASE = (() => {
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  if (envBase) {
+    return normalizeBase(envBase);
+  }
+  const frontendPort = window.location.port ? Number(window.location.port) : null;
+  const isLocalHost =
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalHost && frontendPort && frontendPort !== LOCAL_API_PORT) {
+    const protocol = window.location.protocol;
+    const localProtocol =
+      protocol === 'https:' || protocol === 'http:' ? protocol.replace(':', '') : 'http';
+    return normalizeBase(`${localProtocol}://localhost:${LOCAL_API_PORT}${API_PATH}`);
+  }
+  return API_PATH;
+})();
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 function validateStep(
@@ -237,7 +259,7 @@ export default function AssessmentForm() {
     setSubmitError(null);
 
     try {
-      const response = await fetch('/api/assessments', {
+      const response = await fetch(`${API_BASE}/assessments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

@@ -36,7 +36,7 @@ Run both the React dev server and the FastAPI backend together with a single com
 ```bash
 npm install
 npm run server:install   # install Python dependencies
-npm run dev:all          # starts frontend on :5173 and backend on :3001
+npm run dev              # starts frontend on :5173 and backend on :3001
 ```
 
 The Vite dev server automatically proxies `/api/*` requests to the FastAPI backend at `http://localhost:3001`, so form submissions work out of the box.
@@ -44,9 +44,9 @@ The Vite dev server automatically proxies `/api/*` requests to the FastAPI backe
 ### Development (manual / separate terminals)
 
 ```bash
-# Terminal 1 – frontend
+# Terminal 1 – frontend only
 npm install
-npm run dev        # http://localhost:5173
+npm run dev:frontend  # http://localhost:5173
 
 # Terminal 2 – backend
 npm run server:install
@@ -108,6 +108,7 @@ cp .env.example .env
 | `MONGODB_URI` | `mongodb://localhost:27017` | MongoDB connection string |
 | `MONGODB_DB` | `career_assessment` | Database name |
 | `MONGODB_COLLECTION` | `assessments` | Collection name |
+| `VITE_API_BASE_URL` | `""` | Optional frontend API base (use when frontend is hosted separately) |
 
 ---
 

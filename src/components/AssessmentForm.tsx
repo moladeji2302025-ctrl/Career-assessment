@@ -63,7 +63,8 @@ const API_BASE = (() => {
   const isLocalHost =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isLocalHost && frontendPort && frontendPort !== LOCAL_API_PORT) {
-    return `http://localhost:${LOCAL_API_PORT}/api`;
+    const localProtocol = window.location.protocol === 'https:' ? 'https' : 'http';
+    return `${localProtocol}://localhost:${LOCAL_API_PORT}/api`;
   }
   return '/api';
 })();

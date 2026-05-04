@@ -52,6 +52,20 @@ const STEPS = [
   { id: 5, label: 'Review' },
 ];
 
+const API_BASE = (() => {
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  if (envBase) {
+    return envBase.replace(/\/$/, '');
+  }
+  if (typeof window === 'undefined') {
+    return '/api';
+  }
+  if (window.location.hostname === 'localhost' && window.location.port !== '3001') {
+    return 'http://localhost:3001/api';
+  }
+  return '/api';
+})();
+
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 function validateStep(
@@ -237,7 +251,7 @@ export default function AssessmentForm() {
     setSubmitError(null);
 
     try {
-      const response = await fetch('/api/assessments', {
+      const response = await fetch(`${API_BASE}/assessments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

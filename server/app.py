@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
@@ -25,17 +26,16 @@ REQUIRED_FIELDS = [
 
 VALID_GROUPS = {"IT_STUDENT", "NYSC_CORP_MEMBER"}
 
-app = FastAPI(title="Career Assessment API")
-
-
-@app.on_event("startup")
-def on_startup() -> None:
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
     init_client()
+    try:
+        yield
+    finally:
+        close_client()
 
 
-@app.on_event("shutdown")
-def on_shutdown() -> None:
-    close_client()
+app = FastAPI(title="Career Assessment API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

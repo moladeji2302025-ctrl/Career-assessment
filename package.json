@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n frontend,backend -c cyan,yellow \"npm run dev:frontend\" \"npm run server:dev\"",
+    "dev": "vercel dev",
     "dev:frontend": "vite",
     "build": "tsc -b && vite build",
     "build:full": "npm run build && npm run server:build",
@@ -17,6 +17,7 @@
     "server:start": "python -m uvicorn server.app:app --host 0.0.0.0 --port 3001"
   },
   "dependencies": {
+    "@vercel/postgres": "^0.10.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },
@@ -25,6 +26,7 @@
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vercel/node": "^5.7.15",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "eslint": "^10.2.1",

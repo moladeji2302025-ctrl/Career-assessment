@@ -22,59 +22,86 @@ A multi-step web form that collects career-relevant data from **IT Students** an
 ## Tech Stack
 
 - **React 19** + **TypeScript** (Vite scaffold)
-- **FastAPI** (Python) backend with MongoDB persistence
+- **Vercel Serverless Functions** (Node.js) for the `/api/assessments` endpoint
+- **Vercel Postgres** (Neon-backed) for persistent storage
 - Plain CSS (no additional UI library dependency)
 
 ---
 
 ## Getting Started
 
-### Development (recommended)
+### Prerequisites
 
-Run both the React dev server and the FastAPI backend together with a single command:
+- [Node.js 18+](https://nodejs.org/)
+- [Vercel CLI](https://vercel.com/docs/cli): `npm i -g vercel`
+- A [Vercel account](https://vercel.com/) (free tier works)
 
-```bash
-npm install
-npm run server:install   # install Python dependencies
-npm run dev              # starts frontend on :5173 and backend on :3001
-```
+### Local development (recommended — uses Vercel CLI)
 
-The Vite dev server automatically proxies `/api/*` requests to the FastAPI backend at `http://localhost:3001`, so form submissions work out of the box.
-
-### Development (manual / separate terminals)
-
-```bash
-# Terminal 1 – frontend only
-npm install
-npm run dev:frontend  # http://localhost:5173
-
-# Terminal 2 – backend
-npm run server:install
-npm run server:dev # http://localhost:3001
-```
-
-### Production (single server)
-
-Build the React app and start only the FastAPI server — it will serve both the API and the compiled frontend from port 3001:
+`vercel dev` starts the Vite frontend and the serverless functions together under a single port, so form submissions reach `/api/assessments` without any separate proxy:
 
 ```bash
 npm install
-npm run server:install
-npm run start      # builds frontend then starts FastAPI on :3001
+vercel login          # authenticate with Vercel (one-time)
+vercel link           # link the local clone to your Vercel project (one-time)
+vercel env pull .env.local   # pull Postgres credentials into .env.local
+vercel dev            # http://localhost:3000
 ```
 
-Or step by step:
+> **Tip:** The first time a submission is made, the serverless function creates the `assessments` table automatically (`CREATE TABLE IF NOT EXISTS`).
+
+### Frontend-only development (no database)
+
+If you just want to work on the UI without database access:
 
 ```bash
-npm run build:full          # type-check + Vite build + Python compile
-npm run server:start        # serve on 0.0.0.0:3001
+npm install
+npm run dev:frontend  # http://localhost:5173  (API calls will fail — expected)
 ```
+
+---
+
+## Deploying to Vercel
+
+### 1. Provision a Vercel Postgres database
+
+1. Open your project in the [Vercel dashboard](https://vercel.com/dashboard).
+2. Go to **Storage** → **Create Database** → **Postgres** (powered by Neon).
+3. Follow the wizard; accept the default region that matches your deployment region.
+4. Once created, Vercel automatically injects the following environment variables into your project:
+   - `POSTGRES_URL`
+   - `POSTGRES_URL_NON_POOLING`
+   - `POSTGRES_USER`, `POSTGRES_HOST`, `POSTGRES_PASSWORD`, `POSTGRES_DATABASE`
+
+### 2. Deploy
+
+```bash
+vercel deploy --prod
+```
+
+Or connect your GitHub repository to Vercel for automatic deployments on every push.
+
+### 3. Environment variables
+
+| Variable | Set by | Description |
+|---|---|---|
+| `POSTGRES_URL` | Vercel (auto) | Pooled Postgres connection string |
+| `POSTGRES_URL_NON_POOLING` | Vercel (auto) | Non-pooled connection string (used for migrations) |
+| `POSTGRES_USER` | Vercel (auto) | Database user |
+| `POSTGRES_HOST` | Vercel (auto) | Database host |
+| `POSTGRES_PASSWORD` | Vercel (auto) | Database password |
+| `POSTGRES_DATABASE` | Vercel (auto) | Database name |
+| `VITE_API_BASE_URL` | Optional | Override the API base (leave empty on Vercel) |
+
+See `.env.example` for a full template.
 
 ---
 
 ## Project Structure
 
 ```
+api/
+└── assessments.ts            # Vercel Serverless Function — POST handler + Postgres storage
 src/
 ├── components/
 │   ├── AssessmentForm.tsx        # Main orchestrator (state, validation, payload)
@@ -91,24 +118,9 @@ src/
 │   └── organizationDepartments.ts # Dept lists and option arrays
 └── types/
     └── assessment.ts             # All TypeScript interfaces & the AIAnalysisPayload type
+server/                           # Legacy FastAPI backend (retained for reference)
+vercel.json                       # Vercel build configuration
 ```
-
----
-
-## Environment Configuration
-
-Copy `.env.example` to `.env` and set the values for your environment before starting the backend:
-
-```bash
-cp .env.example .env
-```
-
-| Variable | Default | Description |
-|---|---|---|
-| `MONGODB_URI` | `mongodb://localhost:27017` | MongoDB connection string |
-| `MONGODB_DB` | `career_assessment` | Database name |
-| `MONGODB_COLLECTION` | `assessments` | Collection name |
-| `VITE_API_BASE_URL` | `""` | Optional frontend API base (use when frontend is hosted separately) |
 
 ---
 
@@ -116,10 +128,53 @@ cp .env.example .env
 
 1. A user completes the multi-step form and clicks **Submit Assessment**.
 2. `AssessmentForm.tsx` builds an `AIAnalysisPayload` and POSTs it to `/api/assessments`.
-3. **Development**: the Vite dev server proxies `/api` to the FastAPI backend at `http://localhost:3001`.
-4. **Production**: the built frontend is served by FastAPI itself, so `/api/assessments` hits the same origin — no proxy needed.
-5. The FastAPI backend validates the payload and inserts it into MongoDB.
-6. On success the frontend shows the submission confirmation screen.
+3. The Vercel Serverless Function (`api/assessments.ts`) receives the request.
+4. The function validates the payload and inserts a record into Vercel Postgres.
+5. On success the function returns `{ id, submittedAt }` and the frontend shows the confirmation screen.
+
+> **Same-origin:** On Vercel, the frontend and the serverless functions share the same domain, so CORS is not required.
+
+---
+
+## Serverless Function API
+
+### `POST /api/assessments`
+
+**Request body** — `AIAnalysisPayload` (see `src/types/assessment.ts`):
+
+```json
+{
+  "respondentName": "Ada Lovelace",
+  "respondentGroup": "NYSC_CORP_MEMBER",
+  "organizationDepartment": "Engineering",
+  "programStudied": "Computer Science",
+  "degreeRequired": "BSc",
+  "serviceEndDate": "2025-12-01",
+  "careerInterests": ["Software Engineering"],
+  "enjoyedSkills": ["Problem Solving"],
+  "workEnvironment": "remote",
+  "primaryMotivation": "impact",
+  "biggestStrength": "analytical",
+  "shortTermGoal": "Land a junior dev role",
+  "longTermGoal": "Lead engineering teams",
+  "scenarioResponses": {}
+}
+```
+
+**Success** `201 Created`:
+```json
+{ "id": "<uuid>", "submittedAt": "<ISO-8601 timestamp>" }
+```
+
+**Error** `400 Bad Request`:
+```json
+{ "detail": "Missing required field: respondentName" }
+```
+
+**Error** `500 Internal Server Error`:
+```json
+{ "detail": "Failed to store assessment. Please try again." }
+```
 
 ---
 
@@ -132,3 +187,4 @@ Open `src/data/programDegreeMapping.ts` and add a new key/value pair:
 ```
 
 That is the only change required to support a new programme.
+

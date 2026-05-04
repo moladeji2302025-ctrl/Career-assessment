@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
-from functools import lru_cache
-
 from pymongo import MongoClient
+
+_client: MongoClient | None = None
+_collection = None
 
 
 def _env(name: str, default: str) -> str:
@@ -11,11 +12,14 @@ def _env(name: str, default: str) -> str:
     return value if value else default
 
 
-@lru_cache
 def get_collection():
-    uri = _env("MONGODB_URI", "mongodb://localhost:27017")
-    database_name = _env("MONGODB_DB", "career_assessment")
-    collection_name = _env("MONGODB_COLLECTION", "assessments")
+    global _client, _collection
+    if _collection is None:
+        uri = _env("MONGODB_URI", "mongodb://localhost:27017")
+        database_name = _env("MONGODB_DB", "career_assessment")
+        collection_name = _env("MONGODB_COLLECTION", "assessments")
 
-    client = MongoClient(uri)
-    return client[database_name][collection_name]
+        _client = MongoClient(uri)
+        _collection = _client[database_name][collection_name]
+
+    return _collection

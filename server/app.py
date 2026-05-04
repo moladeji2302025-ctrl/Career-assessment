@@ -64,8 +64,7 @@ def _optional_string(payload: Dict[str, Any], key: str) -> str | None:
 
 
 def _iso_timestamp() -> str:
-    timestamp = datetime.now(timezone.utc).isoformat()
-    return timestamp.replace("+00:00", "Z")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def _build_entry(payload: Dict[str, Any]) -> Dict[str, Any]:

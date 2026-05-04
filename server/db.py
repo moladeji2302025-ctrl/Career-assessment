@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import os
+
 from pymongo import MongoClient
+from pymongo.collection import Collection
 
 _client: MongoClient | None = None
-_collection = None
+_collection: Collection | None = None
 
 
 def _env(name: str, default: str) -> str:
@@ -12,7 +14,7 @@ def _env(name: str, default: str) -> str:
     return value if value else default
 
 
-def get_collection():
+def get_collection() -> Collection:
     global _client, _collection
     if _collection is None:
         uri = _env("MONGODB_URI", "mongodb://localhost:27017")

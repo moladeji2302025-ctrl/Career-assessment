@@ -157,8 +157,8 @@ function ensureHeader(sheet) {
 
 /**
  * Builds a safe, unique Google Sheets tab name from a respondent name and
- * timestamp.  Invalid characters (\ / ? * [ ] :) are stripped; the result is
- * truncated to 50 chars before appending the date suffix; collisions are
+ * timestamp.  Invalid characters (\ / ? * [ ] :) are stripped; the name part is
+ * truncated to 50 chars before appending the 15-char date suffix; collisions are
  * resolved by appending a numeric counter.
  *
  * @param {string} respondentName
@@ -237,7 +237,9 @@ function createEntrySheet(ss, data, timestamp, scenarioResponses) {
   var answeredCount = SCENARIO_KEYS.reduce(function (n, k) {
     return n + (scenarioResponses[k] ? 1 : 0);
   }, 0);
-  var completeness = Math.round((answeredCount / SCENARIO_KEYS.length) * 100) + '%';
+  var completeness = SCENARIO_KEYS.length > 0
+    ? Math.round((answeredCount / SCENARIO_KEYS.length) * 100) + '%'
+    : 'N/A';
 
   // ── Build the full data grid (51 rows × 2 columns) ───────────────────────
   // Each entry is [columnA, columnB].  Empty rows act as visual separators.

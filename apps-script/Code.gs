@@ -194,31 +194,24 @@ function makeSafeSheetName(respondentName, timestamp) {
 }
 
 /**
- * Creates a formatted per-submission sheet tab and returns its name.
+ * Creates a styled per-submission sheet tab that matches a card-like report
+ * layout and returns its name.
  *
- * Layout (all in columns A–B):
- *   Row  1 : Title banner "CAREER ASSESSMENT RESPONSE"
- *   Row  2 : Submitted timestamp
- *   Row  3 : (blank separator)
- *   Row  4 : Section — RESPONDENT INFORMATION
- *   Row  5 : Sub-header (Field | Value)
- *   Rows 6–8  : Name · Group · Org/Dept
- *   Row  9 : (blank)
- *   Row 10 : Section — PROGRAM-SPECIFIC INFORMATION
- *   Row 11 : Sub-header (Field | Value)
- *   Rows 12–16 : IT Student / NYSC fields
- *   Row 17 : (blank)
- *   Row 18 : Section — CORE ASSESSMENT
- *   Row 19 : Sub-header (Field | Value)
- *   Rows 20–26 : Career interests → long-term goal
- *   Row 27 : (blank)
- *   Row 28 : Section — SCENARIO RESPONSES
- *   Row 29 : Sub-header (Question ID | Response)
- *   Rows 30–49 : one row per scenario key (alternating background)
- *   Row 50 : (blank)
- *   Row 51 : Section — SUBMISSION SUMMARY
- *   Row 52 : Sub-header (Metric | Value)
- *   Rows 53–55 : total / answered / completeness %
+ * Sections (all in columns A–B):
+ *   Banner rows  : Title + submitted timestamp
+ *   Card 1       : PERSONAL — full name
+ *   Card 2       : GROUP — selected group
+ *   Card 3       : ORGANISATION PLACEMENT — department
+ *   Card 4       : NYSC CORP MEMBER DETAILS *or* IT STUDENT DETAILS
+ *                  (omitted when neither group type is detected)
+ *   Card 5       : INTERESTS & SKILLS — 7 assessment fields
+ *   Card 6       : SCENARIO RESPONSES — one row per scenario key
+ *   Card 7       : SUBMISSION SUMMARY — totals & completeness
+ *
+ * Section headers use a dark-navy background with white bold text; data rows
+ * use a light label background (col A) and white value background (col B),
+ * with muted-blue label text and dark-navy value text — matching the
+ * card-report screenshot.
  *
  * @param {GoogleAppsScript.Spreadsheet.Spreadsheet} ss
  * @param {Object} data              Parsed JSON payload
@@ -249,166 +242,247 @@ function createEntrySheet(ss, data, timestamp, scenarioResponses) {
     ? Math.round((answeredCount / SCENARIO_KEYS.length) * 100) + '%'
     : 'N/A';
 
-  // ── Build the full data grid (55 rows × 2 columns) ───────────────────────
-  // Each entry is [columnA, columnB].  Empty rows act as visual separators.
-  var grid = [
-    /* 1  */ ['CAREER ASSESSMENT RESPONSE', ''],
-    /* 2  */ ['Submitted: ' + tsString, ''],
-    /* 3  */ ['', ''],
-    /* 4  */ ['RESPONDENT INFORMATION', ''],
-    /* 5  */ ['Field', 'Value'],
-    /* 6  */ ['Name', String(data.respondentName)],
-    /* 7  */ ['Group', String(data.respondentGroup)],
-    /* 8  */ ['Organization / Department', String(data.organizationDepartment)],
-    /* 9  */ ['', ''],
-    /* 10 */ ['PROGRAM-SPECIFIC INFORMATION', ''],
-    /* 11 */ ['Field', 'Value'],
-    /* 12 */ ['School Program (IT Student)', data.schoolProgram ? String(data.schoolProgram) : '—'],
-    /* 13 */ ['Expected Completion Date (IT)', data.expectedCompletionDate ? String(data.expectedCompletionDate) : '—'],
-    /* 14 */ ['Program Studied (NYSC)', data.programStudied ? String(data.programStudied) : '—'],
-    /* 15 */ ['Degree Required (NYSC)', data.degreeRequired ? String(data.degreeRequired) : '—'],
-    /* 16 */ ['Service End Date (NYSC)', data.serviceEndDate ? String(data.serviceEndDate) : '—'],
-    /* 17 */ ['', ''],
-    /* 18 */ ['CORE ASSESSMENT', ''],
-    /* 19 */ ['Field', 'Value'],
-    /* 20 */ ['Career Interests', careerInterests],
-    /* 21 */ ['Enjoyed Skills', enjoyedSkills],
-    /* 22 */ ['Work Environment', String(data.workEnvironment)],
-    /* 23 */ ['Primary Motivation', String(data.primaryMotivation)],
-    /* 24 */ ['Biggest Strength', String(data.biggestStrength)],
-    /* 25 */ ['Short-term Goal (1–2 yrs)', String(data.shortTermGoal)],
-    /* 26 */ ['Long-term Goal (5+ yrs)', String(data.longTermGoal)],
-    /* 27 */ ['', ''],
-    /* 28 */ ['SCENARIO RESPONSES', ''],
-    /* 29 */ ['Question ID', 'Response'],
-  ];
-
-  // Rows 30–49: one row per scenario key
-  SCENARIO_KEYS.forEach(function (k) {
-    grid.push([k, scenarioResponses[k] ? String(scenarioResponses[k]) : '—']);
-  });
-
-  // Rows 50–55: separator + summary
-  grid.push(
-    /* 50 */ ['', ''],
-    /* 51 */ ['SUBMISSION SUMMARY', ''],
-    /* 52 */ ['Metric', 'Value'],
-    /* 53 */ ['Total Scenario Questions', SCENARIO_KEYS.length],
-    /* 54 */ ['Scenarios Answered', answeredCount],
-    /* 55 */ ['Completeness', completeness]
+  // ── Determine programme section based on group ───────────────────────────
+  var groupLower = String(data.respondentGroup || '').toLowerCase();
+  var isNYSC = groupLower.indexOf('nysc') !== -1;
+  var isITStudent = !isNYSC && (
+    groupLower.indexOf('it student') !== -1 ||
+    groupLower.indexOf('it intern') !== -1 ||
+    groupLower.indexOf('student') !== -1
   );
 
-  // Write all data in a single batch call for efficiency
-  sheet.getRange(1, 1, grid.length, 2).setValues(grid);
+  // ── Build dynamic grid ───────────────────────────────────────────────────
+  // Each element is [colA, colB]. Row numbers are tracked as we push.
+  var grid = [];
 
-  // ── Column widths & row heights ──────────────────────────────────────────
-  sheet.setColumnWidth(1, 240);
+  // Structural metadata collected while building the grid
+  var mergeRowList = [];       // rows where A:B should be fully merged
+  var sectionHdrRowList = [];  // rows that receive dark-navy section header style
+  var personalDataRow, groupDataRow, orgDataRow;
+  var progHdrRow, progDataRows = [];
+  var interestsHdrRow, interestsDataStart, interestsDataEnd;
+  var scenHdrRow, scenSubHdrRow, scenDataStart;
+  var summaryHdrRow, summaryDataStart;
+
+  /** Push one [colA, colB] row and return its 1-based row number. */
+  function push(a, b) {
+    grid.push([a !== undefined ? a : '', b !== undefined ? b : '']);
+    return grid.length;
+  }
+
+  // ── Banner ───────────────────────────────────────────────────────────────
+  push('CAREER ASSESSMENT', '');                // row 1 — title
+  mergeRowList.push(1);
+  push('Submitted: ' + tsString, '');           // row 2 — timestamp
+  mergeRowList.push(2);
+  push('', '');                                 // row 3 — blank gap
+  mergeRowList.push(3);
+
+  // ── PERSONAL card ────────────────────────────────────────────────────────
+  push('PERSONAL', '');
+  sectionHdrRowList.push(grid.length); mergeRowList.push(grid.length);
+  personalDataRow = push('Full name', String(data.respondentName));
+  push('', ''); mergeRowList.push(grid.length);
+
+  // ── GROUP card ───────────────────────────────────────────────────────────
+  push('GROUP', '');
+  sectionHdrRowList.push(grid.length); mergeRowList.push(grid.length);
+  groupDataRow = push('Selected group', String(data.respondentGroup));
+  push('', ''); mergeRowList.push(grid.length);
+
+  // ── ORGANISATION PLACEMENT card ──────────────────────────────────────────
+  push('ORGANISATION PLACEMENT', '');
+  sectionHdrRowList.push(grid.length); mergeRowList.push(grid.length);
+  orgDataRow = push('Department posted to', String(data.organizationDepartment));
+  push('', ''); mergeRowList.push(grid.length);
+
+  // ── Programme card (shown only for known group types) ────────────────────
+  if (isNYSC) {
+    push('NYSC CORP MEMBER DETAILS', '');
+    progHdrRow = grid.length; sectionHdrRowList.push(progHdrRow); mergeRowList.push(progHdrRow);
+    progDataRows.push(push('Programme studied', data.programStudied ? String(data.programStudied) : '\u2014'));
+    progDataRows.push(push('Degree required',   data.degreeRequired ? String(data.degreeRequired) : '\u2014'));
+    progDataRows.push(push('Service end date',  data.serviceEndDate ? String(data.serviceEndDate) : '\u2014'));
+    push('', ''); mergeRowList.push(grid.length);
+  } else if (isITStudent) {
+    push('IT STUDENT DETAILS', '');
+    progHdrRow = grid.length; sectionHdrRowList.push(progHdrRow); mergeRowList.push(progHdrRow);
+    progDataRows.push(push('School programme',          data.schoolProgram ? String(data.schoolProgram) : '\u2014'));
+    progDataRows.push(push('Expected completion date',  data.expectedCompletionDate ? String(data.expectedCompletionDate) : '\u2014'));
+    push('', ''); mergeRowList.push(grid.length);
+  }
+
+  // ── INTERESTS & SKILLS card ──────────────────────────────────────────────
+  push('INTERESTS & SKILLS', '');
+  interestsHdrRow = grid.length; sectionHdrRowList.push(interestsHdrRow); mergeRowList.push(interestsHdrRow);
+  interestsDataStart = grid.length + 1;
+  push('Career interests',            careerInterests);
+  push('Enjoyed skills',              enjoyedSkills);
+  push('Work environment preference', String(data.workEnvironment));
+  push('Primary motivation',          String(data.primaryMotivation));
+  push('Biggest strength',            String(data.biggestStrength));
+  push('Short-term goal (1\u20132 yrs)', String(data.shortTermGoal));
+  interestsDataEnd = push('Long-term goal (5+ yrs)', String(data.longTermGoal));
+  push('', ''); mergeRowList.push(grid.length);
+
+  // ── SCENARIO RESPONSES card ──────────────────────────────────────────────
+  push('SCENARIO RESPONSES', '');
+  scenHdrRow = grid.length; sectionHdrRowList.push(scenHdrRow); mergeRowList.push(scenHdrRow);
+  scenSubHdrRow = push('Scenario', 'Response');
+  scenDataStart = grid.length + 1;
+  SCENARIO_KEYS.forEach(function (k) {
+    push(k, scenarioResponses[k] ? String(scenarioResponses[k]) : '\u2014');
+  });
+  push('', ''); mergeRowList.push(grid.length);
+
+  // ── SUBMISSION SUMMARY card ──────────────────────────────────────────────
+  push('SUBMISSION SUMMARY', '');
+  summaryHdrRow = grid.length; sectionHdrRowList.push(summaryHdrRow); mergeRowList.push(summaryHdrRow);
+  summaryDataStart = grid.length + 1;
+  push('Total Scenario Questions', SCENARIO_KEYS.length);
+  push('Scenarios Answered',       answeredCount);
+  push('Completeness',             completeness);
+
+  var totalRows = grid.length;
+
+  // ── Write all data in one batch ───────────────────────────────────────────
+  sheet.getRange(1, 1, totalRows, 2).setValues(grid);
+
+  // ── Column widths ─────────────────────────────────────────────────────────
+  sheet.setColumnWidth(1, 260);
   sheet.setColumnWidth(2, 420);
-  sheet.setRowHeight(1, 48); // Taller than the default (~21 px) to give the banner visual weight
 
-  // Enable text wrapping for all cells so long answers display properly
-  sheet.getRange(1, 1, grid.length, 2).setWrap(true);
+  // ── Wrap all cells ────────────────────────────────────────────────────────
+  sheet.getRange(1, 1, totalRows, 2).setWrap(true);
 
-  // ── Merge A:B for title, subtitle, and all section headers ───────────────
-  [1, 2, 4, 10, 18, 28, 51].forEach(function (r) {
+  // ── Merge designated rows (A:B) ───────────────────────────────────────────
+  mergeRowList.forEach(function (r) {
     sheet.getRange(r, 1, 1, 2).merge();
   });
 
-  // ── Title banner (row 1) ─────────────────────────────────────────────────
-  var titleRange = sheet.getRange(1, 1);
-  titleRange.setBackground('#1A73E8');
-  titleRange.setFontColor('#FFFFFF');
-  titleRange.setFontSize(16);
-  titleRange.setFontWeight('bold');
-  titleRange.setHorizontalAlignment('center');
-  titleRange.setVerticalAlignment('middle');
-
-  // ── Subtitle / timestamp (row 2) ─────────────────────────────────────────
-  var subtitleRange = sheet.getRange(2, 1);
-  subtitleRange.setBackground('#4285F4');
-  subtitleRange.setFontColor('#FFFFFF');
-  subtitleRange.setFontStyle('italic');
-  subtitleRange.setHorizontalAlignment('center');
-
-  // ── Section header rows ───────────────────────────────────────────────────
-  [4, 10, 18, 28, 51].forEach(function (r) {
-    var secRange = sheet.getRange(r, 1);
-    secRange.setBackground('#E8F0FE');
-    secRange.setFontColor('#1A73E8');
-    secRange.setFontWeight('bold');
-    secRange.setFontSize(11);
-    secRange.setBorder(
-      true, true, true, true, false, false,
-      '#1A73E8', SpreadsheetApp.BorderStyle.SOLID_MEDIUM
-    );
-  });
-
-  // ── Sub-header rows — "Field | Value" style for all sections ─────────────
-  [5, 11, 19, 29, 52].forEach(function (r) {
-    var subHdrRange = sheet.getRange(r, 1, 1, 2);
-    subHdrRange.setBackground('#D2E3FC');
-    subHdrRange.setFontWeight('bold');
-    subHdrRange.setFontColor('#1A73E8');
-    subHdrRange.setBorder(
-      true, true, true, true, true, false,
-      '#1A73E8', SpreadsheetApp.BorderStyle.SOLID
-    );
-  });
-
-  // ── Label cells (column A) — bold + light-gray background ────────────────
-  // Respondent, Program, Core, and Summary data rows
-  [
-    sheet.getRange(6, 1, 3, 1),   // Respondent rows 6–8
-    sheet.getRange(12, 1, 5, 1),  // Program rows 12–16
-    sheet.getRange(20, 1, 7, 1),  // Core rows 20–26
-    sheet.getRange(53, 1, 3, 1),  // Summary rows 53–55
-  ].forEach(function (r) {
-    r.setFontWeight('bold');
-    r.setBackground('#F8F9FA');
-  });
-
-  // ── Alternating row colors for the 20 scenario rows (30–49) ──────────────
-  for (var i = 0; i < SCENARIO_KEYS.length; i++) {
-    var rowNum = 30 + i;
-    sheet.getRange(rowNum, 1, 1, 2).setBackground(i % 2 === 0 ? '#FFFFFF' : '#F1F3F4');
-  }
-
-  // ── Bordered tables: outer box (medium blue) + inner grid (light gray) ────
-  var outerColor = '#1A73E8';
-  var innerColor = '#DADCE0';
+  // ── Colour palette ────────────────────────────────────────────────────────
+  var darkNavy    = '#1E3A5F';   // section header background
+  var navyDark2   = '#162D4A';   // title banner background (slightly darker)
+  var navyDark3   = '#243B55';   // timestamp row background
+  var white       = '#FFFFFF';
+  var labelBg     = '#F7F9FC';   // light off-white for label cells
+  var labelColor  = '#546E8A';   // muted blue-gray for label text
+  var valueColor  = '#1E3A5F';   // dark navy for value text
+  var subHdrBg    = '#D2E3FC';   // light-blue sub-header for scenario column labels
+  var subHdrColor = '#1558B0';
+  var borderGray  = '#DADCE0';   // inner grid lines
+  var solid       = SpreadsheetApp.BorderStyle.SOLID;
   var solidMedium = SpreadsheetApp.BorderStyle.SOLID_MEDIUM;
-  var solid = SpreadsheetApp.BorderStyle.SOLID;
 
-  /**
-   * Applies a fully-bordered table style to a two-column block of rows:
-   *   • Outer box: medium-weight blue line on all four sides.
-   *   • Inner horizontal lines: light-gray SOLID between every row.
-   *   • Inner vertical line: light-gray SOLID between columns A and B.
-   * @param {number} startRow  First row of the section (1-based).
-   * @param {number} numRows   Total number of rows in the section.
-   */
-  function setBorderedTable(startRow, numRows) {
-    var range = sheet.getRange(startRow, 1, numRows, 2);
-    // Outer box — medium blue
-    range.setBorder(true, true, true, true, false, false, outerColor, solidMedium);
-    // Inner horizontal lines between rows
-    range.setBorder(false, false, false, false, false, true, innerColor, solid);
-    // Inner vertical line between columns
-    range.setBorder(false, false, false, false, true, false, innerColor, solid);
+  // ── Title banner (row 1) ──────────────────────────────────────────────────
+  var titleCell = sheet.getRange(1, 1);
+  titleCell.setBackground(navyDark2);
+  titleCell.setFontColor(white);
+  titleCell.setFontSize(16);
+  titleCell.setFontWeight('bold');
+  titleCell.setHorizontalAlignment('center');
+  titleCell.setVerticalAlignment('middle');
+  sheet.setRowHeight(1, 52);
+
+  // ── Timestamp row (row 2) ─────────────────────────────────────────────────
+  var tsCell = sheet.getRange(2, 1);
+  tsCell.setBackground(navyDark3);
+  tsCell.setFontColor('#A8C7FA');
+  tsCell.setFontStyle('italic');
+  tsCell.setFontSize(10);
+  tsCell.setHorizontalAlignment('center');
+  tsCell.setVerticalAlignment('middle');
+  sheet.setRowHeight(2, 26);
+
+  // ── Section header rows (dark-navy with white bold text) ──────────────────
+  sectionHdrRowList.forEach(function (r) {
+    var hdrCell = sheet.getRange(r, 1);
+    hdrCell.setBackground(darkNavy);
+    hdrCell.setFontColor(white);
+    hdrCell.setFontWeight('bold');
+    hdrCell.setFontSize(10);
+    hdrCell.setHorizontalAlignment('left');
+    hdrCell.setVerticalAlignment('middle');
+    sheet.setRowHeight(r, 30);
+  });
+
+  // ── Scenario sub-header (Scenario | Response column labels) ───────────────
+  var scenSubRange = sheet.getRange(scenSubHdrRow, 1, 1, 2);
+  scenSubRange.setBackground(subHdrBg);
+  scenSubRange.setFontColor(subHdrColor);
+  scenSubRange.setFontWeight('bold');
+
+  // ── Helper: apply label/value styling to a single data row ────────────────
+  function styleDataRow(r) {
+    sheet.getRange(r, 1).setBackground(labelBg).setFontColor(labelColor);
+    sheet.getRange(r, 2).setBackground(white).setFontColor(valueColor);
   }
 
-  // Respondent section: header row 4 + sub-header row 5 + 3 data rows 6–8
-  setBorderedTable(4, 5);
-  // Program section: header row 10 + sub-header row 11 + 5 data rows 12–16
-  setBorderedTable(10, 7);
-  // Core section: header row 18 + sub-header row 19 + 7 data rows 20–26
-  setBorderedTable(18, 9);
-  // Scenario section: header row 28 + sub-header row 29 + 20 data rows 30–49
-  setBorderedTable(28, 22);
-  // Summary section: header row 51 + sub-header row 52 + 3 data rows 53–55
-  setBorderedTable(51, 5);
+  // Single-row cards: Personal, Group, Organisation
+  [personalDataRow, groupDataRow, orgDataRow].forEach(styleDataRow);
 
-  // ── Freeze the title row so it stays visible while scrolling ─────────────
+  // Programme section data rows
+  progDataRows.forEach(styleDataRow);
+
+  // Interests & Skills data rows
+  for (var i = interestsDataStart; i <= interestsDataEnd; i++) {
+    styleDataRow(i);
+  }
+
+  // Scenario data rows (alternating row shading)
+  for (var j = 0; j < SCENARIO_KEYS.length; j++) {
+    var scRow = scenDataStart + j;
+    var scBg = j % 2 === 0 ? white : '#F8F9FA';
+    sheet.getRange(scRow, 1).setBackground(scBg).setFontColor(labelColor);
+    sheet.getRange(scRow, 2).setBackground(scBg).setFontColor(valueColor);
+  }
+
+  // Submission Summary data rows
+  for (var k = summaryDataStart; k < summaryDataStart + 3; k++) {
+    styleDataRow(k);
+  }
+
+  // ── Borders: each card gets a solid dark-navy outer box + inner grid ───────
+  /**
+   * Applies a card-style border to a block of rows:
+   *   • Outer box  : dark-navy medium border on all four sides.
+   *   • Inner rows : light-gray SOLID horizontal lines between rows.
+   *   • Inner col  : light-gray SOLID vertical line between A and B.
+   * @param {number} startRow  First row (1-based).
+   * @param {number} numRows   Number of rows in the block.
+   */
+  function setBorderedCard(startRow, numRows) {
+    var range = sheet.getRange(startRow, 1, numRows, 2);
+    range.setBorder(true, true, true, true, false, false, darkNavy, solidMedium);
+    range.setBorder(false, false, false, false, false, true, borderGray, solid);
+    range.setBorder(false, false, false, false, true, false, borderGray, solid);
+  }
+
+  // PERSONAL card  : section header + 1 data row
+  setBorderedCard(sectionHdrRowList[0], 2);
+  // GROUP card     : section header + 1 data row
+  setBorderedCard(sectionHdrRowList[1], 2);
+  // ORGANISATION card : section header + 1 data row
+  setBorderedCard(sectionHdrRowList[2], 2);
+
+  // Programme card (dynamic height) and subsequent section indices
+  var sIdx = 3;
+  if (progHdrRow) {
+    setBorderedCard(progHdrRow, 1 + progDataRows.length);
+    sIdx = 4;
+  }
+
+  // INTERESTS & SKILLS card: header row + all data rows
+  var interestsNumRows = interestsDataEnd - interestsDataStart + 2;
+  setBorderedCard(sectionHdrRowList[sIdx], interestsNumRows);
+
+  // SCENARIO RESPONSES card: header + sub-header row + 20 data rows
+  setBorderedCard(sectionHdrRowList[sIdx + 1], 2 + SCENARIO_KEYS.length);
+
+  // SUBMISSION SUMMARY card: header + 3 data rows
+  setBorderedCard(sectionHdrRowList[sIdx + 2], 4);
+
+  // ── Freeze the title row ──────────────────────────────────────────────────
   sheet.setFrozenRows(1);
 
   return sheetName;
